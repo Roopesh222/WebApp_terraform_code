@@ -1,0 +1,47 @@
+trigger:
+- master
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+steps:
+- checkout: self  # Downloads the repository contentss
+  persistCredentials: true  # Ensures that any token used is available in subsequent steps
+
+- task: TerraformInstaller@1
+  inputs:
+    terraformVersion: 'latest'  # You can specify a specific version if needed
+
+- script: |
+    echo "Current Directory: $(pwd)"
+    echo "Azure CLI Version: $(az --version)"
+    az login --service-principal -u <client_id> -p <client_secret> --tenant <tenant_id>
+  displayName: 'Azure Login'
+  env:
+    ARM_CLIENT_ID: <client_id>
+    ARM_CLIENT_SECRET: <client_secret>
+    ARM_SUBSCRIPTION_ID: <subs_id>
+    ARM_TENANT_ID: <tenant_id>
+
+
+- script: |
+    terraform init
+  displayName: 'init success'
+  workingDirectory: $(System.DefaultWorkingDirectory)
+
+- script: |
+    terraform validate
+  displayName: 'validate success'
+  workingDirectory: $(System.DefaultWorkingDirectory)
+
+- script: |
+    terraform plan -out=terraform.tfplan
+  displayName: 'plan success'
+  workingDirectory: $(System.DefaultWorkingDirectory)
+
+- script: |
+    terraform apply -auto-approve terraform.tfplan
+  displayName: 'apply success'
+  workingDirectory: $(System.DefaultWorkingDirectory)
+
+
